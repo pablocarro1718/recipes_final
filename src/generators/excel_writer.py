@@ -37,6 +37,7 @@ RECIPE_LIST_HEADERS = {
     "*配件序号（可多选）\nAccessory No/ID（Choose multiply ）": "accessory_no",
     "所用配件名称\nUsed Accessories": "accessory_name",
     "食谱制作总步骤（做法介绍）\nOverview For Cooking Steps": "overview",
+    "*份量\nServings": "servings",
 }
 
 INGREDIENT_HEADERS = {
@@ -206,6 +207,7 @@ def recipe_list_rows(recipes: List[Recipe]) -> List[Dict[str, object]]:
                 "accessory_no": DEFAULT_ACCESSORY_NO,
                 "accessory_name": DEFAULT_ACCESSORY_NAME,
                 "overview": build_overview(recipe.steps),
+                "servings": recipe.meta.servings,
             }
         )
     return rows
@@ -273,6 +275,8 @@ def step_row(recipe: Recipe, step: Step) -> Dict[str, object]:
         "temperature": step.temperature,
         "direction": 0,
         "speed": mapped_speed,
+        "direction": step.direction,
+        "speed": step.speed,
         "minutes": step.minutes,
         "seconds": step.seconds,
     }
