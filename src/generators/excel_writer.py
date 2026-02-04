@@ -261,6 +261,7 @@ def step_rows(recipes: List[Recipe]) -> List[Dict[str, object]]:
 
 
 def step_row(recipe: Recipe, step: Step) -> Dict[str, object]:
+    mapped_speed = map_speed(step.speed)
     return {
         "recipe_no": recipe.meta.recipe_no,
         "language": recipe.meta.language,
@@ -270,11 +271,26 @@ def step_row(recipe: Recipe, step: Step) -> Dict[str, object]:
         "mode": step.mode,
         "description": step.description,
         "temperature": step.temperature,
-        "direction": step.direction,
-        "speed": step.speed,
+        "direction": 0,
+        "speed": mapped_speed,
         "minutes": step.minutes,
         "seconds": step.seconds,
     }
+
+
+def map_speed(speed: Optional[float]) -> Optional[int]:
+    if speed is None:
+        return None
+    try:
+        value = float(speed)
+    except (TypeError, ValueError):
+        return None
+    rounded = int(round(value))
+    if rounded < 1:
+        return 1
+    if rounded > 12:
+        return 12
+    return rounded
 
 
 def write_recipes_to_template(
