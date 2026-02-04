@@ -25,6 +25,18 @@ RECIPE_LIST_HEADERS = {
     "语言\nLanguage": "language",
     "*食谱类型\nRecipe Type": "recipe_type",
     "*食谱名称\nRecipe Name": "name",
+    "*食谱分类（单选）\nRecipe Category(Multiple Choice)": "category",
+    "*份量\nServings": "servings",
+    "*准备时间/小时\nPrepare Time/Hour": "prep_hours",
+    "*准备时间/分\nPrepare Time/Minutes": "prep_minutes",
+    "*烹饪时间/小时\nCooking Time/Hour": "cook_hours",
+    "*烹饪时间/分\nCooking Time/Minutes": "cook_minutes",
+    "*休息时间/小时\nRest Time/Hour": "rest_hours",
+    "*休息时间/分\nRest Time/Minutes": "rest_minutes",
+    "*难易度\nDifficulty Level": "difficulty",
+    "*配件序号（可多选）\nAccessory No/ID（Choose multiply ）": "accessory_no",
+    "所用配件名称\nUsed Accessories": "accessory_name",
+    "食谱制作总步骤（做法介绍）\nOverview For Cooking Steps": "overview",
     "*份量\nServings": "servings",
 }
 
@@ -53,6 +65,17 @@ STEP_HEADERS = {
     "步骤/分\nWorking Time/Mins": "minutes",
     "步骤/秒\nWorking Time/ Seconds": "seconds",
 }
+
+DEFAULT_CATEGORY = "Platillos Mexicanos"
+DEFAULT_PREP_HOURS = 0
+DEFAULT_PREP_MINUTES = 0
+DEFAULT_COOK_HOURS = 0
+DEFAULT_COOK_MINUTES = 0
+DEFAULT_REST_HOURS = 0
+DEFAULT_REST_MINUTES = 0
+DEFAULT_DIFFICULTY = "fácil"
+DEFAULT_ACCESSORY_NO = 5
+DEFAULT_ACCESSORY_NAME = "Cuchilla"
 
 
 def get_sheet_paths(z: zipfile.ZipFile) -> List[WorkbookSheet]:
@@ -172,10 +195,44 @@ def recipe_list_rows(recipes: List[Recipe]) -> List[Dict[str, object]]:
                 "language": recipe.meta.language,
                 "recipe_type": recipe.meta.recipe_type,
                 "name": recipe.meta.name,
+                "category": DEFAULT_CATEGORY,
+                "servings": recipe.meta.servings,
+                "prep_hours": DEFAULT_PREP_HOURS,
+                "prep_minutes": DEFAULT_PREP_MINUTES,
+                "cook_hours": DEFAULT_COOK_HOURS,
+                "cook_minutes": DEFAULT_COOK_MINUTES,
+                "rest_hours": DEFAULT_REST_HOURS,
+                "rest_minutes": DEFAULT_REST_MINUTES,
+                "difficulty": DEFAULT_DIFFICULTY,
+                "accessory_no": DEFAULT_ACCESSORY_NO,
+                "accessory_name": DEFAULT_ACCESSORY_NAME,
+                "overview": build_overview(recipe.steps),
                 "servings": recipe.meta.servings,
             }
         )
     return rows
+
+
+def build_overview(steps: List[Step]) -> str:
+    sentences: List[str] = [f"Ponemos en el vaso el accesorio \"{DEFAULT_ACCESSORY_NAME}\"."]
+    for step in steps:
+        if step.description and step.description.strip():
+            sentences.append(step.description.strip())
+            continue
+        if step.temperature is None and step.speed is None and step.minutes is None and step.seconds is None:
+            continue
+        parts: List[str] = []
+        if step.minutes is not None:
+            parts.append(f"{step.minutes} minutos")
+        if step.seconds is not None and step.seconds != 0:
+            parts.append(f"{step.seconds} segundos")
+        time_text = " ".join(parts)
+        temp_text = f"{step.temperature}°C" if step.temperature is not None else None
+        speed_text = f"velocidad {step.speed}" if step.speed is not None else None
+        details = ", ".join(item for item in [time_text, temp_text, speed_text] if item)
+        if details:
+            sentences.append(f"Cocinamos {details}.")
+    return " ".join(sentences)
 
 
 def ingredient_rows(recipes: List[Recipe]) -> List[Dict[str, object]]:
@@ -206,6 +263,7 @@ def step_rows(recipes: List[Recipe]) -> List[Dict[str, object]]:
 
 
 def step_row(recipe: Recipe, step: Step) -> Dict[str, object]:
+    mapped_speed = map_speed(step.speed)
     return {
         "recipe_no": recipe.meta.recipe_no,
         "language": recipe.meta.language,
@@ -215,11 +273,32 @@ def step_row(recipe: Recipe, step: Step) -> Dict[str, object]:
         "mode": step.mode,
         "description": step.description,
         "temperature": step.temperature,
+        "direction": 0,
+        "speed": mapped_speed,
         "direction": step.direction,
         "speed": step.speed,
         "minutes": step.minutes,
         "seconds": step.seconds,
     }
+
+
+def map_speed(speed: Optional[float | str]) -> Optional[int]:
+    if speed is None:
+        return None
+    if isinstance(speed, str):
+        normalized = speed.strip().lower()
+        if "cuchara" in normalized:
+            return 1
+    try:
+        value = float(speed)
+    except (TypeError, ValueError):
+        return None
+    mapped = int(round(value * 12 / 10))
+    if mapped < 1:
+        return 1
+    if mapped > 12:
+        return 12
+    return mapped
 
 
 def write_recipes_to_template(

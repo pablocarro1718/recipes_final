@@ -99,6 +99,9 @@ def strip_tags(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text)
 
 
+SPOON_SYMBOLS = {"\ue003"}
+
+
 def parse_controls(text: str) -> List[Tuple[Optional[int], Optional[int], Optional[int]]]:
     controls = []
     for segment in re.findall(r"<nobr>(.*?)</nobr>", text):
@@ -111,6 +114,7 @@ def parse_controls(text: str) -> List[Tuple[Optional[int], Optional[int], Option
         sec_match = re.search(r"(\d+)\s*seg", seg)
         temp_match = re.search(r"(\d+)\s*°C", seg)
         speed_match = re.search(r"vel\s*(\d+)", seg)
+        has_spoon_symbol = any(symbol in seg for symbol in SPOON_SYMBOLS)
         if min_match:
             minutes = int(min_match.group(1))
         if sec_match:
@@ -119,6 +123,8 @@ def parse_controls(text: str) -> List[Tuple[Optional[int], Optional[int], Option
             temp = int(temp_match.group(1))
         if speed_match:
             speed = int(speed_match.group(1))
+        if has_spoon_symbol:
+            speed = 1
         controls.append((minutes, seconds, temp, speed))
     return controls
 
