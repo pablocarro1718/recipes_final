@@ -278,19 +278,23 @@ def step_row(recipe: Recipe, step: Step) -> Dict[str, object]:
     }
 
 
-def map_speed(speed: Optional[float]) -> Optional[int]:
+def map_speed(speed: Optional[float | str]) -> Optional[int]:
     if speed is None:
         return None
+    if isinstance(speed, str):
+        normalized = speed.strip().lower()
+        if "cuchara" in normalized:
+            return 1
     try:
         value = float(speed)
     except (TypeError, ValueError):
         return None
-    rounded = int(round(value))
-    if rounded < 1:
+    mapped = int(round(value * 12 / 10))
+    if mapped < 1:
         return 1
-    if rounded > 12:
+    if mapped > 12:
         return 12
-    return rounded
+    return mapped
 
 
 def write_recipes_to_template(
